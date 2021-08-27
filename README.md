@@ -47,10 +47,10 @@ The supported actions are:
     |     DOCB/DOCV xxxx  | Browse or View doc member xxxx       |
     *---------------------*--------------------------------------*
   Notes:
-     If &zparm is found in any then a popup prompt for command options
-     will be presented to the user.
+   If &zparm is found in any then a popup prompt for command options
+   will be presented to the user.
 
-     The SCRNAME will be the command/application name for all but TSO.
+   The SCRNAME will be the command/application name for all but TSO.
 
 # Sample Data
 
