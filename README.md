@@ -18,19 +18,19 @@ creating, or updating, an ISPF Panel.
 Create a member in the same REXX library where EZMENU was copied under
 any name (e.g. YOURMENU) with the following control records:
 
-   *----------*-------------------------------------------*
-   | Title:   | The Title to be used on the ISPF Menu     |
-   *----------*-------------------------------------------*
-   | Sort:    | Yes (Default) or No to sort the items     |
-   *----------*-------------------------------------------*
-   | Help:    | The name of an ISPF Tutorial Panel        |
-   *----------*-------------------------------------------*
-   | Command: | The Name of the Command or Application    |
-   *----------*-------------------------------------------*
-   | Desc:    | Description of the Command or Application |
-   *----------*-------------------------------------------*
-   | Action:  | The Action to take when selected          |
-   *----------*-------------------------------------------*
+    *----------*-------------------------------------------*
+    | Title:   | The Title to be used on the ISPF Menu     |
+    *----------*-------------------------------------------*
+    | Sort:    | Yes (Default) or No to sort the items     |
+    *----------*-------------------------------------------*
+    | Help:    | The name of an ISPF Tutorial Panel        |
+    *----------*-------------------------------------------*
+    | Command: | The Name of the Command or Application    |
+    *----------*-------------------------------------------*
+    | Desc:    | Description of the Command or Application |
+    *----------*-------------------------------------------*
+    | Action:  | The Action to take when selected          |
+    *----------*-------------------------------------------*
 
 The case is not important except for the description text.
 
@@ -39,13 +39,13 @@ these keywords will be ignored.
 
 The supported actions are:
 
-  *---------------------*--------------------------------------*
-  |     CMD(XXX)        | SELECT CMD(XXX) Newappl(cbt) Passlib |
-  |     PGM(XXX)        | SELECT PGM(XXX)                      |
-  |     PANEL(XXXX)     | SELECT PANEL(XXXX)                   |
-  |     TSO xxxx        | Address TSO xxxx                     |
-  |     DOCB/DOCV xxxx  | Browse or View doc member xxxx       |
-  *---------------------*--------------------------------------*
+   *---------------------*--------------------------------------*
+   |     CMD(XXX)        | SELECT CMD(XXX) Newappl(cbt) Passlib |
+   |     PGM(XXX)        | SELECT PGM(XXX)                      |
+   |     PANEL(XXXX)     | SELECT PANEL(XXXX)                   |
+   |     TSO xxxx        | Address TSO xxxx                     |
+   |     DOCB/DOCV xxxx  | Browse or View doc member xxxx       |
+   *---------------------*--------------------------------------*
   Notes:
      If &zparm is found in any then a popup prompt for command options
      will be presented to the user.
@@ -56,18 +56,18 @@ The supported actions are:
 
 Must start in column 1
 
-Title: CBT Starter Kit ISPF Menu
-Sort: Yes
-Help: cbtmenuh
-Command: Document
-Desc: Some documentation for the included tools
-Action: DOCB
-Command: EDSL
-Desc: Enhanced Data Set List (312)
-Action: CMD(%edsl)
-Command: TRYIT
-Desc: Powerful Edit command to  test REXX, ISPF Panels, etc.
-Action: pgm(isptutor) parm(#tryit)
+    Title: CBT Starter Kit ISPF Menu
+    Sort: Yes
+    Help: cbtmenuh
+    Command: Document
+    Desc: Some documentation for the included tools
+    Action: DOCB
+    Command: EDSL
+    Desc: Enhanced Data Set List (312)
+    Action: CMD(%edsl)
+    Command: TRYIT
+    Desc: Powerful Edit command to  test REXX, ISPF Panels, etc.
+    Action: pgm(isptutor) parm(#tryit)
 
 # Usage
 
