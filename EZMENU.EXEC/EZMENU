@@ -26,6 +26,9 @@
   |     PANEL(XXXX)       SELECT PANEL(XXXX)                   |
   |     TSO xxxx          Address TSO xxxx                     |
   |     DOCB/DOCV xxxx    Browse or View doc member xxxx       |
+  |     EDIT dsn          Edit a dataset or dataset(member)    |
+  |     VIEW dsn          View a dataset or dataset(member)    |
+  |     BROWSE dsn        Browse a dataset or dataset(member)  |
   |                                                            |
   |     If &zparm is found in any then a popup prompt for      |
   |     command options will be presented to the user.         |
@@ -47,6 +50,8 @@
   | Author:    Lionel B. Dyck                                  |
   |                                                            |
   | History:  (most recent on top)                             |
+  |            2021/08/28 LBD - Correct ISPF command table     |
+  |                           - Add Edit command               |
   |            2021/08/27 LBD - Add sort option to data        |
   |            2021/08/26 LBD - Add check for no option        |
   |                           - Add newappl(cbt) passlib       |
@@ -131,6 +136,8 @@
   zctdesc = "User controlled Repeat Find (RFIND)"
   zcttrunc = 0
   'vget (zsctpref)'
+  if zsctpref = null
+     then zsctpref = 'ISP'
   ctab = zsctpref'cmds'
   'tbtop' ctab
   'tbscan' ctab 'arglist(zctdesc) condlist(EQ) Next'
@@ -176,6 +183,9 @@
       Select
         when left(translate(action),4) = 'CMD('
         then action = 'Select' action 'newappl(cbt) passlib'
+        when left(translate(action),4) = 'EDIT' then nop
+        when left(translate(action),4) = 'VIEW' then nop
+        when left(translate(action),6) = 'BROWSE' then nop
         when left(translate(action),4) = 'PGM('
         then action = 'Select' action
         when left(translate(action),3) = 'DOC'
@@ -208,7 +218,7 @@
         rp = substr(action,p+6)
         action = left(action,p-1) args moreargs''rp
       end
-      if wordpos(translate(word(action,1)),'BROWSE VIEW') = 0
+      if wordpos(translate(word(action,1)),'EDIT BROWSE VIEW') = 0
       then scrname = 'SCRNAME('ccmd')'
       else scrname = null
       if scrname = null & mem = null then do

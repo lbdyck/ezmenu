@@ -45,6 +45,9 @@ The supported actions are:
     |     PANEL(XXXX)     | SELECT PANEL(XXXX)                   |
     |     TSO xxxx        | Address TSO xxxx                     |
     |     DOCB/DOCV xxxx  | Browse or View doc member xxxx       |
+    |     BROWSE dsn      | Browse dsn or dsn(member)            |
+    |     EDIT   dsn      | Edit dsn or dsn(member)              |
+    |     VIEW   dsn      | View dsn or dsn(member)              |
     *---------------------*--------------------------------------*
 Notes:
  * If &zparm is found in any then a popup prompt for command options
