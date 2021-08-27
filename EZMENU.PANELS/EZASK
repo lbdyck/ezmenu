@@ -1,0 +1,11 @@
+)Attr
+ @ type(Output) Intens(high) caps(off)
+ _ type(Input ) Intens(low ) caps(off) hilite(uscore)
+)Body Window(60,3)
++Enter arguments for@cmd
++===>_args
++===>_moreargs
+)Init
+ &zwinttl = 'EZMenu Command Prompt'
+)Proc
+)End

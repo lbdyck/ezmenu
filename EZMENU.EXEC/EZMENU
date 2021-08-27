@@ -1,0 +1,349 @@
+  /* --------------------  rexx procedure  -------------------- *
+  | Name:      dynmenu                                         |
+  |                                                            |
+  | Function:  Display an ISPF menu, which in reality is an    |
+  |            ISPF table, that provides locate, find, and     |
+  |            selection.                                      |
+  |                                                            |
+  | Syntax:    %dynmenu menu-member                            |
+  |                                                            |
+  | Dependencies: Requires panels EZMENU and EZASK in ISPPLIB  |
+  |                                                            |
+  | Notes:     The menu is built from data found in the menu   |
+  |            member references on the command (default is    |
+  |            dynmenud). And the member *must* be in the      |
+  |            same library as this exec.                      |
+  |                                                            |
+  |            The menu will be sorted by Command and auto     |
+  |            numbered to allow selection by number,          |
+  |            command, or point-and-shoot on the row.         |
+  |                                                            |
+  |    Valid Actions from the menu-member are:                 |
+  |                                                            |
+  |     Sample:           Results:                             |
+  |     CMD(XXX)          SELECT CMD(XXX) Newappl(cbt) Passlib |
+  |     PGM(XXX)          SELECT PGM(XXX)                      |
+  |     PANEL(XXXX)       SELECT PANEL(XXXX)                   |
+  |     TSO xxxx          Address TSO xxxx                     |
+  |     DOCB/DOCV xxxx    Browse or View doc member xxxx       |
+  |                                                            |
+  |     If &zparm is found in any then a popup prompt for      |
+  |     command options will be presented to the user.         |
+  |                                                            |
+  |     The SCRNAME will be the command/application name.      |
+  |                                                            |
+  | Data Format:                                               |
+  |                                                            |
+  |       Title:   Application title (only 1 allowed)          |
+  |       Sort:    Yes (or No - Yes is the default)            |
+  |       Help:    Tutorial Panel name (only 1 allowed)        |
+  |       Command: command-name                                |
+  |       Desc:    description                                 |
+  |       Action: command Action                               |
+  |                                                            |
+  | Caution:   Be careful using REXXFORM to avoid the inline   |
+  |            ISPF data and the inline table data.            |
+  |                                                            |
+  | Author:    Lionel B. Dyck                                  |
+  |                                                            |
+  | History:  (most recent on top)                             |
+  |            2021/08/27 LBD - Add sort option to data        |
+  |            2021/08/26 LBD - Add check for no option        |
+  |                           - Add newappl(cbt) passlib       |
+  |                             for CMD entries                |
+  |            2021/08/24 LBD - More refinement                |
+  |            2021/08/23 LBD - Creation                       |
+  |                                                            |
+  * ---------------------------------------------------------- */
+  arg option
+
+  parse value '' with null title thelp sort
+
+  if option = null then do
+     say copies('*',72)
+     say '* 'center('EZMENU requires a menu data name',68)' *'
+     say copies('*',72)
+     exit 8
+     end
+
+  Address ISPExec
+  'Control Errors Return'
+
+  /* ------------------------------ *
+  | Check on the members existence |
+  * ------------------------------ */
+  parse source src
+  ddn = word(src,4)
+  x = listdsi(ddn 'FILE')
+  if x /= 0 then do
+    zedsmsg = 'Failure.'
+    zedlmsg = sysmsglvl2
+    'setmsg msg(isrz001)'
+    exit 12
+  end
+  member = "'"sysdsname"("option")'"
+  if sysdsn(member) /= 'OK' then do
+    zedsmsg = 'Failure.'
+    zedlmsg = sysdsn(member)
+    'setmsg msg(isrz001)'
+    exit 12
+  end
+
+  /* ---------------------------- *
+  | Construct the Doc.PDS dsname |
+  * ---------------------------- */
+  docpds = translate(sysdsname,' ','.')
+  w = words(docpds)
+  dochlq = subword(docpds,1,w-1)
+  dochlq = translate(dochlq,'.',' ')
+  docpds = dochlq'.DOC.PDS'
+
+  /* ------------------------------------ *
+  | Dynamically load the ISPF menu table |
+  * ------------------------------------ */
+  menu_table = 'MNU'time('s')
+  tab_rc = load_table(option)
+  if datatype(tab_rc) /= 'CHAR' then do
+    zedsmsg = 'Failure.'
+    zedlmsg = 'The loading of the ISPF Table from' option ,
+      'failed badly.'
+    'setmsg msg(isrz001)'
+    call done
+  end
+
+  /* --------------> Enable Repeat Find <------------------- *
+  | This approach does not require recursion or creating an |
+  | ISPF table for the applications commands. This approach |
+  | updates the active site command table in memory.        |
+  |                                                         |
+  | This does:                                              |
+  | 1. Define the commmand table entry                      |
+  | 2. vget the variable with the prefix for the site ISPF  |
+  |    command table.                                       |
+  | 3. define a varable with the command table name         |
+  | 4. Move to the top of the command table                 |
+  | 5. Establish the table search                           |
+  | 6. if the entry is found then add it                    |
+  | 7. prime the variable to null                           |
+  * ------------------------------------------------------- */
+  zctverb = 'RFIND'
+  zctact = "&devrfind"
+  zctdesc = "User controlled Repeat Find (RFIND)"
+  zcttrunc = 0
+  'vget (zsctpref)'
+  ctab = zsctpref'cmds'
+  'tbtop' ctab
+  'tbscan' ctab 'arglist(zctdesc) condlist(EQ) Next'
+  if rc > 0 then 'tbadd' ctab
+  devrfind = null
+  'vput (devrfind)'
+
+  /* ----------------------------------------------- *
+  | Now display the menu table of ISPF applications |
+  * ----------------------------------------------- */
+  tscr = 'CSR'
+  ztdtop = 0
+  last_find = 0
+  do forever
+    parse value '' with row result
+    /* -------------------------------------------- *
+    | Define devrfind for Passthru to enable RFIND |
+    * -------------------------------------------- */
+    devrfind = 'PASSTHRU'
+    'vput (devrfind)'
+
+    'tbtop' menu_table
+    'tbskip' menu_table 'number('ztdtop')'
+    'tbdispl' menu_table 'Panel(ezmenu)'
+    if rc > 0 then call done
+
+    /* ----------------------- *
+    | Reset devrfind to blank |
+    * ----------------------- */
+    devrfind = ''
+    'vput (devrfind)'
+
+    if datatype(zcmd) = 'NUM' then do
+      ccmd   = tab.zcmd
+      action = tab.ccmd.a
+    end
+    else if row > 0 then do
+      row = row + 0
+      ccmd   = tab.row
+      action = tab.ccmd.a
+    end
+    if row > 0 | datatype(zcmd) = 'NUM' then do
+      Select
+        when left(translate(action),4) = 'CMD('
+        then action = 'Select' action 'newappl(cbt) passlib'
+        when left(translate(action),4) = 'PGM('
+        then action = 'Select' action
+        when left(translate(action),3) = 'DOC'
+        then do
+          if right(word(action,1),1) = 'B'
+             then type = 'BROWSE'
+             else type = 'VIEW'
+          mem = word(action,2)
+          if pos('.',mem) = 0 then do
+          if strip(mem) = null
+          then action = type "Dataset('"docpds"')"
+          else action = type "Dataset('"docpds"("mem")')"
+          end
+         else action = type "Dataset('"dochlq"."mem"')"
+        end
+        when left(translate(action),4) = 'TSO ' then do
+          action = 'Address TSO' substr(action,5)
+        end
+        when left(translate(action),6) = 'PANEL('
+        then action = 'Select' action
+        Otherwise nop
+      end
+      if pos('&ZPARM',translate(action)) > 0 then do
+        cmd = ccmd
+        parse value '' with args moreargs
+        'addpop'
+        'Display Panel(ezask)'
+        'rempop'
+        p = pos('&ZPARM',translate(action))
+        rp = substr(action,p+6)
+        action = left(action,p-1) args moreargs''rp
+      end
+      if wordpos(translate(word(action,1)),'BROWSE VIEW') = 0
+      then scrname = 'SCRNAME('ccmd')'
+      else scrname = null
+      if scrname = null & mem = null then do
+         'lminit dataid(did)' subword(action,2)
+         'Memlist dataid('did')'
+         'lmfree dataid('did')'
+         end
+      else do
+           action scrname
+           end
+    end
+    if row = 0 | datatype(zcmd) = 'CHAR' then do
+      if zcmd = 'RFIND' then zcmd = 'FIND' find_string
+      Select
+        When abbrev('FIND',word(zcmd,1),1) = 1 then do
+          find_string = subword(zcmd,2)
+          if last_find > 0 then 'tbskip' menu_table 'number('last_find')'
+          do forever
+            'tbskip' menu_table
+            if rc > 0 then do
+              zedsmsg = 'Last.'
+              zedlmsg = 'You have reached the end of the Menu.'
+              'Setmsg msg(isrz001)'
+              'tbtop' menu_table
+            end
+            else do
+              if pos(find_string,translate(ccmd cdesc)) > 0 then do
+                last_find = csel
+                ztdtop = csel
+                zedsmsg = 'Found.'
+                zedlmsg = 'Find successful in row' csel
+                'Setmsg msg(isrz001)'
+                leave
+              end
+            end
+          end
+        end
+        When abbrev('LOCATE',word(zcmd,1),1) = 1 then do
+          if datatype(word(zcmd,2)) = 'NUM' then do
+            newtop = word(zcmd,2)
+            if newtop > tmax then do
+              zedsmsg = 'Invalid.'
+              zedlmsg = newtop 'is not a valid row number. The last row' ,
+                'is' tmax'.'
+              'Setmsg msg(isrz001)'
+            end
+            else ztdtop = newtop
+          end
+        end
+        When abbrev('ONLY',word(zcmd,1),1) = 1 then do
+          string = substr(zcmd,2)
+          'tbtop' menu_table
+          do forever
+            'tbskip' menu_table
+            if rc > 0 then leave
+            if pos(string,translate(ccmd cdesc)) = 0
+            then 'tbdelete' menu_table
+          end
+          'tbtop' menu_table
+          count = 0
+          do forever
+            'tbskip' menu_table
+            if rc > 0 then leave
+            count = count + 1
+            ccmd  = tab.csel
+            cdesc = tab.ccmd.d
+            cact  = tab.ccmd.a
+            csel = count
+            tab.count = ccmd
+            'tbput' menu_table
+          end
+        end
+        When abbrev('REFRESH',word(zcmd,1),1) = 1 then do
+          'tbend' menu_table
+          x = load_table()
+        end
+        Otherwise nop
+      end
+    end
+  end
+
+Done:
+  if datatype(tab_rc) = 'CHAR' then
+  'tbend' menu_table
+  exit 0
+
+Load_Table:
+  Address TSO
+  'alloc f('menu_table') shr ds('member') reuse'
+  'execio * diskr' menu_table '(Finis stem in.'
+  'free f('menu_table')'
+  Address ISPExec
+  tabc = 0
+  parse value '' with cmd desc act
+  do i = 1 to in.0
+    if left(in.i,1) = '*' then iterate
+    Select
+      When translate(word(in.i,1)) = 'TITLE:' then
+      title = subword(in.i,2)
+      When translate(word(in.i,1)) = 'HELP:' then
+      thelp = subword(in.i,2)
+      When translate(word(in.i,1)) = 'SORT:' then
+      sort = translate(subword(in.i,2))
+      When translate(word(in.i,1)) = 'COMMAND:' then do
+        if desc /= null then do
+          tabc = tabc + 1
+          tab.tabc = cmd
+          tab.cmd.d = desc
+          tab.cmd.a = act
+          parse value '' with desc act
+        end
+        cmd = translate(word(in.i,2))
+      end
+      When translate(word(in.i,1)) = 'DESC:' then
+      desc = subword(in.i,2)
+      When translate(word(in.i,1)) = 'ACTION:' then
+      act = subword(in.i,2)
+      Otherwise nop   /* ignore anything else */
+    End
+  end
+  tabc = tabc + 1
+  tab.tabc = cmd
+  tab.cmd.d = desc
+  tab.cmd.a = act
+  tab.0 = tabc
+  if sort = 'YES' then
+  call bpxwunix "sort -n ",tab.,tab.,stderr.
+  'tbcreate' menu_table 'names(csel ccmd cdesc cact) nowrite'
+  do csel = 1 to tab.0
+    ccmd = tab.csel
+    cdesc = tab.ccmd.d
+    cact  = tab.ccmd.a
+    'tbadd' menu_table
+  end
+  tmax = tab.0
+  'tbtop' menu_table
+  Return menu_table
+

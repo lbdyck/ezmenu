@@ -1,0 +1,32 @@
+)Attr
+ { type(output) intens(high) caps(off) color(turq) just(asis)
+ } type(input ) intens(high) caps(off) color(white) just(left)
+ @ type(output) intens(high) caps(off) skip(on) color(blue)
+ # type(output) intens(low) caps(off) skip(on) color(green)
+ + type(text  ) intens(low) caps(off) skip(on) color(blue)
+ _ type(input ) intens(low) caps(on) color(turq) hilite(uscore)
+)Body Expand(\\)
+{title
++Option ===>_zcmd                      \ \ +Scroll ===>_tscr
++
++Commands:%F+find xx%L+locate xx%O+only xxx%R+refresh
++
+)Model
+  }z  @z       #z
+)Init
+ .zvars = '(csel ccmd cdesc)'
+*Rexx(* title thelp)
+title = strip(title)
+title = center(title,79)
+*Endrexx
+ if (&thelp NE &Z)
+    .help = &thelp
+)Proc
+ &row = .csrrow
+*Rexx(* row tmax zcmd result)
+ if datatype(zcmd) = 'NUM' then result = 1
+ else result = 0
+*Endrexx
+ if (&result EQ 1)
+     ver (&row,range,1,&tmax)
+)End
