@@ -39,13 +39,13 @@ these keywords will be ignored.
 
 The supported actions are:
 
-   *---------------------*--------------------------------------*
-   |     CMD(XXX)        | SELECT CMD(XXX) Newappl(cbt) Passlib |
-   |     PGM(XXX)        | SELECT PGM(XXX)                      |
-   |     PANEL(XXXX)     | SELECT PANEL(XXXX)                   |
-   |     TSO xxxx        | Address TSO xxxx                     |
-   |     DOCB/DOCV xxxx  | Browse or View doc member xxxx       |
-   *---------------------*--------------------------------------*
+    *---------------------*--------------------------------------*
+    |     CMD(XXX)        | SELECT CMD(XXX) Newappl(cbt) Passlib |
+    |     PGM(XXX)        | SELECT PGM(XXX)                      |
+    |     PANEL(XXXX)     | SELECT PANEL(XXXX)                   |
+    |     TSO xxxx        | Address TSO xxxx                     |
+    |     DOCB/DOCV xxxx  | Browse or View doc member xxxx       |
+    *---------------------*--------------------------------------*
   Notes:
      If &zparm is found in any then a popup prompt for command options
      will be presented to the user.
