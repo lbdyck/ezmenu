@@ -82,15 +82,24 @@ From any ISPF command line or ISPF Option 6:
      TSO %EZMENU menu-data command
 
      menu-data is the data file from which the menu is constructed
+     or
+     menu-data is a dataset name referencing the menu data
+        - data.set(menu)    * for a pds member
+        - menu.data.set     * if sequential
+
      command is optional and is the command to invoke by name
 
 As a ISPF Panel entry:
 
       CMD(%ezmenu cbtmenu &ztrail)
+      or
+      CMD(%ezmenu 'hlq.menu.pds(cbtmenu)' &ztrail)
 
 As an ISPF Command Table entry:
 
        Select Cmd(%ezmenu cbtmenu &zprim)
+       or
+       Select CMD(%ezmenu 'hlq.menu.pds(cbtmenu)' &ztrail)
 
 # License and Warranty
 

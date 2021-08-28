@@ -1,4 +1,4 @@
- /* --------------------  rexx procedure  -------------------- *
+  /* --------------------  rexx procedure  -------------------- *
   | Name:      dynmenu                                         |
   |                                                            |
   | Function:  Display an ISPF menu, which in reality is an    |
@@ -10,6 +10,7 @@
   |            menu-member-name is the name of the menu data   |
   |                             member within the library      |
   |                             where this exec is found.      |
+  |            or dataset(menudata) or dataset (if seq)        |
   |                                                            |
   |            option is optional and is the name of the       |
   |                   command to invoke.                       |
@@ -57,9 +58,10 @@
   | Author:    Lionel B. Dyck                                  |
   |                                                            |
   | History:  (most recent on top)                             |
-  |            2021/08/29 LBD - Add fast-path to command       |
   |            2021/08/28 LBD - Correct ISPF command table     |
   |                           - Add Edit command               |
+  |                           - Add fast-path to command       |
+  |                           - Allow menu_data to be dsn      |
   |            2021/08/27 LBD - Add sort option to data        |
   |            2021/08/26 LBD - Add check for no option        |
   |                           - Add newappl(cbt) passlib       |
@@ -70,59 +72,87 @@
   * ---------------------------------------------------------- */
   arg menu_data option
 
-  parse value '' with null title thelp sort
+  parse value '' with null title thelp sort menu_type
 
   if menu_data = null then do
-     say copies('*',72)
-     say '* 'center('EZMENU requires a menu data name',68)' *'
-     say copies('*',72)
-     exit 8
-     end
+    say copies('*',72)
+    say '* 'center('EZMENU requires a menu data name',68)' *'
+    say copies('*',72)
+    exit 8
+  end
 
   Address ISPExec
   'Control Errors Return'
 
-  /* ------------------------------ *
-  | Check on the members existence |
-  * ------------------------------ */
-  parse source src
-  ddn = word(src,4)
-  x = listdsi(ddn 'FILE')
-  if x /= 0 then do
-    zedsmsg = 'Failure.'
-    zedlmsg = sysmsglvl2
-    'setmsg msg(isrz001)'
-    exit 12
-  end
-  member = "'"sysdsname"("menu_data")'"
-  if sysdsn(member) /= 'OK' then do
-    zedsmsg = 'Failure.'
-    zedlmsg = sysdsn(member)
-    'setmsg msg(isrz001)'
-    exit 12
-  end
+  /* --------------------------------- *
+  | check menu_data for dsn or member |
+  * --------------------------------- */
+  if pos('.',menu_data) > 0 then do
+    x = sysdsn(menu_data)
+    if x /= 'OK' then do
+      zedsmsg = 'Error.'
+      zedlmsg = menu_data sysdsn(menu_data)
+      'setmsg msg(isrz001)'
+      exit 16
+    end
+    else do
+      menu_type = 'D'
+      if pos('(',menu_data) > 0 then do
+        parse value menu_data with ldsn'('mbr')'rdsn
+        x = listdsi(ldsn''rdsn)
+        member = "'"sysdsname"("mbr")'"
+      end
+      else do
+        x = listdsi(menu_data)
+        member = "'"sysdsname"("mbr")'"
+      end
+    end
+    end
+    else menu_type = 'M'
 
-  /* ---------------------------- *
-  | Construct the Doc.PDS dsname |
-  * ---------------------------- */
-  docpds = translate(sysdsname,' ','.')
-  w = words(docpds)
-  dochlq = subword(docpds,1,w-1)
-  dochlq = translate(dochlq,'.',' ')
-  docpds = dochlq'.DOC.PDS'
+    /* ------------------------------ *
+    | Check on the members existence |
+    * ------------------------------ */
+    if menu_type = 'M' then do
+      parse source src
+      ddn = word(src,4)
+      x = listdsi(ddn 'FILE')
+      if x /= 0 then do
+        zedsmsg = 'Failure.'
+        zedlmsg = sysmsglvl2
+        'setmsg msg(isrz001)'
+        exit 12
+      end
+      member = "'"sysdsname"("menu_data")'"
+      if sysdsn(member) /= 'OK' then do
+        zedsmsg = 'Failure.'
+        zedlmsg = sysdsn(member)
+        'setmsg msg(isrz001)'
+        exit 12
+      end
+    end
 
-  /* ------------------------------------ *
-  | Dynamically load the ISPF menu table |
-  * ------------------------------------ */
-  menu_table = 'MNU'time('s')
-  tab_rc = load_table(menu_data)
-  if datatype(tab_rc) /= 'CHAR' then do
-    zedsmsg = 'Failure.'
-    zedlmsg = 'The loading of the ISPF Table from' menu_data ,
-      'failed badly.'
-    'setmsg msg(isrz001)'
-    call done
-  end
+    /* ---------------------------- *
+    | Construct the Doc.PDS dsname |
+    * ---------------------------- */
+    docpds = translate(sysdsname,' ','.')
+    w = words(docpds)
+    dochlq = subword(docpds,1,w-1)
+    dochlq = translate(dochlq,'.',' ')
+    docpds = dochlq'.DOC.PDS'
+
+    /* ------------------------------------ *
+    | Dynamically load the ISPF menu table |
+    * ------------------------------------ */
+    menu_table = 'MNU'time('s')
+    tab_rc = load_table(menu_data)
+    if datatype(tab_rc) /= 'CHAR' then do
+      zedsmsg = 'Failure.'
+      zedlmsg = 'The loading of the ISPF Table from' menu_data ,
+        'failed badly.'
+      'setmsg msg(isrz001)'
+      call done
+    end
 
   /* --------------> Enable Repeat Find <------------------- *
   | This approach does not require recursion or creating an |
