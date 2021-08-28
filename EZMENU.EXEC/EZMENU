@@ -1,11 +1,18 @@
-  /* --------------------  rexx procedure  -------------------- *
+ /* --------------------  rexx procedure  -------------------- *
   | Name:      dynmenu                                         |
   |                                                            |
   | Function:  Display an ISPF menu, which in reality is an    |
   |            ISPF table, that provides locate, find, and     |
   |            selection.                                      |
   |                                                            |
-  | Syntax:    %dynmenu menu-member                            |
+  | Syntax:    %dynmenu menu-member-name option                |
+  |                                                            |
+  |            menu-member-name is the name of the menu data   |
+  |                             member within the library      |
+  |                             where this exec is found.      |
+  |                                                            |
+  |            option is optional and is the name of the       |
+  |                   command to invoke.                       |
   |                                                            |
   | Dependencies: Requires panels EZMENU and EZASK in ISPPLIB  |
   |                                                            |
@@ -50,6 +57,7 @@
   | Author:    Lionel B. Dyck                                  |
   |                                                            |
   | History:  (most recent on top)                             |
+  |            2021/08/29 LBD - Add fast-path to command       |
   |            2021/08/28 LBD - Correct ISPF command table     |
   |                           - Add Edit command               |
   |            2021/08/27 LBD - Add sort option to data        |
@@ -60,11 +68,11 @@
   |            2021/08/23 LBD - Creation                       |
   |                                                            |
   * ---------------------------------------------------------- */
-  arg option
+  arg menu_data option
 
   parse value '' with null title thelp sort
 
-  if option = null then do
+  if menu_data = null then do
      say copies('*',72)
      say '* 'center('EZMENU requires a menu data name',68)' *'
      say copies('*',72)
@@ -86,7 +94,7 @@
     'setmsg msg(isrz001)'
     exit 12
   end
-  member = "'"sysdsname"("option")'"
+  member = "'"sysdsname"("menu_data")'"
   if sysdsn(member) /= 'OK' then do
     zedsmsg = 'Failure.'
     zedlmsg = sysdsn(member)
@@ -107,10 +115,10 @@
   | Dynamically load the ISPF menu table |
   * ------------------------------------ */
   menu_table = 'MNU'time('s')
-  tab_rc = load_table(option)
+  tab_rc = load_table(menu_data)
   if datatype(tab_rc) /= 'CHAR' then do
     zedsmsg = 'Failure.'
-    zedlmsg = 'The loading of the ISPF Table from' option ,
+    zedlmsg = 'The loading of the ISPF Table from' menu_data ,
       'failed badly.'
     'setmsg msg(isrz001)'
     call done
@@ -144,6 +152,19 @@
   if rc > 0 then 'tbadd' ctab
   devrfind = null
   'vput (devrfind)'
+
+  /* --------------------------------------- *
+   | Check for the initial command to invoke |
+   * --------------------------------------- */
+  if option /= null then do forever
+     if ccmd = option then do
+        action = tab.ccmd.a
+        call do_command
+        call done
+        end
+     'tbskip' menu_table
+     if rc > 0 then leave
+     end
 
   /* ----------------------------------------------- *
   | Now display the menu table of ISPF applications |
@@ -179,57 +200,7 @@
       ccmd   = tab.row
       action = tab.ccmd.a
     end
-    if row > 0 | datatype(zcmd) = 'NUM' then do
-      Select
-        when left(translate(action),4) = 'CMD('
-        then action = 'Select' action 'newappl(cbt) passlib'
-        when left(translate(action),4) = 'EDIT' then nop
-        when left(translate(action),4) = 'VIEW' then nop
-        when left(translate(action),6) = 'BROWSE' then nop
-        when left(translate(action),4) = 'PGM('
-        then action = 'Select' action
-        when left(translate(action),3) = 'DOC'
-        then do
-          if right(word(action,1),1) = 'B'
-             then type = 'BROWSE'
-             else type = 'VIEW'
-          mem = word(action,2)
-          if pos('.',mem) = 0 then do
-          if strip(mem) = null
-          then action = type "Dataset('"docpds"')"
-          else action = type "Dataset('"docpds"("mem")')"
-          end
-         else action = type "Dataset('"dochlq"."mem"')"
-        end
-        when left(translate(action),4) = 'TSO ' then do
-          action = 'Address TSO' substr(action,5)
-        end
-        when left(translate(action),6) = 'PANEL('
-        then action = 'Select' action
-        Otherwise nop
-      end
-      if pos('&ZPARM',translate(action)) > 0 then do
-        cmd = ccmd
-        parse value '' with args moreargs
-        'addpop'
-        'Display Panel(ezask)'
-        'rempop'
-        p = pos('&ZPARM',translate(action))
-        rp = substr(action,p+6)
-        action = left(action,p-1) args moreargs''rp
-      end
-      if wordpos(translate(word(action,1)),'EDIT BROWSE VIEW') = 0
-      then scrname = 'SCRNAME('ccmd')'
-      else scrname = null
-      if scrname = null & mem = null then do
-         'lminit dataid(did)' subword(action,2)
-         'Memlist dataid('did')'
-         'lmfree dataid('did')'
-         end
-      else do
-           action scrname
-           end
-    end
+    if row > 0 | datatype(zcmd) = 'NUM' then call do_command
     if row = 0 | datatype(zcmd) = 'CHAR' then do
       if zcmd = 'RFIND' then zcmd = 'FIND' find_string
       Select
@@ -304,6 +275,58 @@ Done:
   if datatype(tab_rc) = 'CHAR' then
   'tbend' menu_table
   exit 0
+
+Do_Command:
+      Select
+        when left(translate(action),4) = 'CMD('
+        then action = 'Select' action 'newappl(cbt) passlib'
+        when left(translate(action),4) = 'EDIT' then nop
+        when left(translate(action),4) = 'VIEW' then nop
+        when left(translate(action),6) = 'BROWSE' then nop
+        when left(translate(action),4) = 'PGM('
+        then action = 'Select' action
+        when left(translate(action),3) = 'DOC'
+        then do
+          if right(word(action,1),1) = 'B'
+             then type = 'BROWSE'
+             else type = 'VIEW'
+          mem = word(action,2)
+          if pos('.',mem) = 0 then do
+          if strip(mem) = null
+          then action = type "Dataset('"docpds"')"
+          else action = type "Dataset('"docpds"("mem")')"
+          end
+         else action = type "Dataset('"dochlq"."mem"')"
+        end
+        when left(translate(action),4) = 'TSO ' then do
+          action = 'Address TSO' substr(action,5)
+        end
+        when left(translate(action),6) = 'PANEL('
+        then action = 'Select' action
+        Otherwise nop
+      end
+      if pos('&ZPARM',translate(action)) > 0 then do
+        cmd = ccmd
+        parse value '' with args moreargs
+        'addpop'
+        'Display Panel(ezask)'
+        'rempop'
+        p = pos('&ZPARM',translate(action))
+        rp = substr(action,p+6)
+        action = left(action,p-1) args moreargs''rp
+      end
+      if wordpos(translate(word(action,1)),'EDIT BROWSE VIEW') = 0
+      then scrname = 'SCRNAME('ccmd')'
+      else scrname = null
+      if scrname = null & mem = null then do
+         'lminit dataid(did)' subword(action,2)
+         'Memlist dataid('did')'
+         'lmfree dataid('did')'
+         end
+      else do
+           action scrname
+           end
+return
 
 Load_Table:
   Address TSO

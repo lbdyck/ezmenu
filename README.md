@@ -79,15 +79,18 @@ data member that you created.
 
 From any ISPF command line or ISPF Option 6:
 
-     TSO %EZMENU CBTMENU
+     TSO %EZMENU menu-data command
+
+     menu-data is the data file from which the menu is constructed
+     command is optional and is the command to invoke by name
 
 As a ISPF Panel entry:
 
-      CMD(%ezmenu cbtmenu)
+      CMD(%ezmenu cbtmenu &ztrail)
 
 As an ISPF Command Table entry:
 
-       Select Cmd(%ezmenu cbtmenu)
+       Select Cmd(%ezmenu cbtmenu &zprim)
 
 # License and Warranty
 
