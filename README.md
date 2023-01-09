@@ -8,7 +8,8 @@ creating, or updating, an ISPF Panel.
 ### Installation
 
 1. Execute the $RECV member to create the EXEC and PANELS datasets
-2. Copy the EXEC library into a library in your SYSEXEC (or SYSPROC)
+   - applies only if you get this package from the www.cbttape.org
+3. Copy the EXEC library into a library in your SYSEXEC (or SYSPROC)
    library concatenation in your TSO/ISPF Logon Procedure.
 3. Copy the PANELS library into a library in your ISPPLIB library
    concatenation in your TSO/ISPF Logon Procedure.
