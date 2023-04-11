@@ -18,6 +18,8 @@ creating, or updating, an ISPF Panel.
 
 ### Configuration
 
+A sample menu is provided in the EXEC library under the name SAMPLE.
+
 Create a member in the same REXX library where EZMENU was copied under
 any name (e.g. YOURMENU) with the following control records:
 
@@ -27,6 +29,7 @@ any name (e.g. YOURMENU) with the following control records:
     | Sort:    | Yes (Default) or No to sort the items     |
     *----------*-------------------------------------------*
     | Help:    | The name of an ISPF Tutorial Panel        |
+    |          | (optional)                                |
     *----------*-------------------------------------------*
     | Command: | The Name of the Command or Application    |
     *----------*-------------------------------------------*

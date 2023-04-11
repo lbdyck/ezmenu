@@ -1,0 +1,117 @@
+* Dynamic ISPF Menu data
+* comments start with an * (or blank)
+* if multiple title: statements then only the last is honored
+*
+*   title: application title (only 1 allowed)
+*   Sort:    Yes (or No - Yes is the default)
+*   Help:    Tutorial Panel name (only 1 allowed)
+*   Command: command-name
+*   Desc:    description
+*   Action: command Action
+*
+*   The prose after the > is case insenstive, as is
+*   the case for both Command and Action values,
+*   while the Title and Desc values are case
+*   sensitive.
+*
+*   Repeat Command:, Desc:, and Action: for each
+*   menu item.
+*
+* Valid Actions are:
+*
+*  Sample:           Results:
+*  CMD(XXX)          SELECT CMD(XXX)
+*  PANEL(XXXX)       SELECT PANEL(XXXX)
+*  TSO xxxx          Address TSO xxxx
+*
+*  If &zparm is found in any then a popup prompt for command options
+*  will be presented to the user.
+*
+*  The SCRNAME will be the name of the command/application
+*
+*
+Title: CBT Starter Kit ISPF Menu
+Command: CBTView
+Desc: 43 View the CBTTape Files
+Action: CMD(%cbtview)
+Command: EDSL
+Desc: 312 Enhanced Data Set List
+Action: CMD(%edsl)
+Command: GETIPLDT
+Desc: 312 Display IPL Info for All LPARs in SYSPLEX
+Action: CMD(%tsotrap %getipldt)
+Command: FASTPATH
+Desc: 312 Display Active ISPF Commands
+Action: CMD(%fastpath)
+Command: IMON
+Desc: 10 Interactive z/OS Monitor
+Action: CMD(%imon)
+Command: IPLINFO
+Desc: 434 Display IPL Information
+Action: CMD(%iplinfo)
+Command: ISPFTips
+Desc: 990 ISPF Tips and Tricks Dialog
+Action: CMD(%ispftip)
+Command: OMVSCMD
+Desc: 312 Execute an OMVS command and view the results
+Action: CMD(OMVSCMD &zparm)
+Command: OMVSMAN
+Desc: 312 OMVS Man Page Display
+Action: CMD(OMVSMAN &zparm)
+Command: PDS
+Desc: 182 PDS - the Swiss Army Knife of TSO/ISPF Tools
+Action: PANEL(PDS@PRIM)
+Command: PDSEGEN
+Desc: 969 Excellent Dialog working with PDSE Member Gens
+Action: CMD(%pdsegen)
+Command: PGLITE
+Desc: 182 Lite version of PDSEGEN
+Action: CMD(%pglite)
+Command: RACFADM
+Desc: 417 RACF Easy Administration
+Action: CMD(%racfadm)
+Command: REVIEW
+Desc: 134 Excellent z/OS Dataset Viewer
+Action: CMD(review &zparm)
+Command: REXXTRY
+Desc: 312 Interactive REXX Experience
+Action: CMD(%rexxtry)
+Command: SETCLIP
+Desc: 312 Setup/Manage the ISPF Edit Clipboard
+Action: CMD(%setclip)
+Command:    SHOWZOS
+Desc: 613 Display Information about z/OS
+Action: CMD(showzos)
+Command:    TSOTRAP
+Desc: 313 Issue any TSO command and View the Results
+Action: CMD(tsotrap &zparm)
+Command:    TXT2HTML
+Desc: 314 Convert Data to HTML
+Action: CMD(%txt2html)
+Command:    TXT2PDF
+Desc: 314 Convert Data to PDF
+Action: CMD(%txt2pdf)
+Command:    TXT2RTF
+Desc: 314 Convert Data to RTF
+Action: CMD(%txt2rtf)
+Command:    VB2FB
+Desc: 314 Convert a PDS from VB to FB and vice versa
+Action: CMD(%vb2fb)
+Command:    VTOC
+Desc: 112 Display a VTOC (TSO command)
+Action: CMD(vtoc &zparm)
+Command: ZFSTOOLS
+Desc: 314 Collection of ZFS Tools
+Action: CMD(%zfstools)
+Command: ZSTART
+Desc: 314 Manage ISPF ZSTART variable
+Action: CMD(%zstart)
+Command: ZSYNC
+Desc: 314 Compare/Sync Two Partitioned Datasets
+Action: CMD(%zsync)
+Command: ZTSOHELP
+Desc: 314 TSO Help Dialog
+Action: CMD(%ztsohelp)
+Command: WHOSON
+Desc: 314 Display All Active TSO Users
+Action: CMD(%tsotrap %whoson)

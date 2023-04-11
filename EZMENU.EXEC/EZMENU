@@ -1,11 +1,11 @@
   /* --------------------  rexx procedure  -------------------- *
-  | Name:      dynmenu                                         |
+  | Name:      ezmenu                                          |
   |                                                            |
   | Function:  Display an ISPF menu, which in reality is an    |
   |            ISPF table, that provides locate, find, and     |
   |            selection.                                      |
   |                                                            |
-  | Syntax:    %dynmenu menu-member-name option                |
+  | Syntax:    %ezmenu menu-member-name option                 |
   |                                                            |
   |            menu-member-name is the name of the menu data   |
   |                             member within the library      |
@@ -18,9 +18,7 @@
   | Dependencies: Requires panels EZMENU and EZASK in ISPPLIB  |
   |                                                            |
   | Notes:     The menu is built from data found in the menu   |
-  |            member references on the command (default is    |
-  |            dynmenud). And the member *must* be in the      |
-  |            same library as this exec.                      |
+  |            member references on the command.               |
   |                                                            |
   |            The menu will be sorted by Command and auto     |
   |            numbered to allow selection by number,          |
@@ -58,6 +56,7 @@
   | Author:    Lionel B. Dyck                                  |
   |                                                            |
   | History:  (most recent on top)                             |
+  |            2023/05/07 LBD - Several updates                |
   |            2021/08/28 LBD - Correct ISPF command table     |
   |                           - Add Edit command               |
   |                           - Add fast-path to command       |
@@ -72,7 +71,7 @@
   * ---------------------------------------------------------- */
   arg menu_data option
 
-  parse value '' with null title thelp sort menu_type
+  parse value '' with null title thelp sort menu_type loc1
 
   if menu_data = null then do
     say copies('*',72)
@@ -268,6 +267,33 @@
             end
             else ztdtop = newtop
           end
+        else do
+             if words(zcmd) > 1 then do forever
+                if loc1 = null then do
+                   loc1 = 0
+                   'tbtop' menu_table
+                   'tbskip' menu_table 'position(row)'
+                   end
+                'tbskip' menu_table 'position(row)'
+                if rc > 0 then do
+                   zedsmsg = 'Not Located.'
+                   zedlmsg = word(zcmd,2) 'was not located.'
+                   'Setmsg msg(isrz001)'
+                   leave
+                   end
+                if pos(word(zcmd,2),ccmd cdesc) = 0 then iterate
+                ztdtop = row
+                zedsmsg = 'Located.'
+                zedlmsg = word(zcmd,2) 'located.'
+                'Setmsg msg(isrz001)'
+                leave
+                end
+             else do
+                  zedsmsg = 'Invalid.'
+                  zedlmsg = 'Locate requires a string.'
+                 'Setmsg msg(isrz001)'
+                  end
+             end
         end
         When abbrev('ONLY',word(zcmd,1),1) = 1 then do
           string = substr(zcmd,2)
