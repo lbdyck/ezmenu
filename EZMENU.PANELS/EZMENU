@@ -1,6 +1,6 @@
 )Attr
  { type(output) intens(high) caps(off) color(turq) just(asis)
- } type(input ) intens(high) caps(off) color(white) just(left)
+ } type(input ) intens(high) caps(off) color(white) just(right)
  @ type(output) intens(high) caps(off) skip(on) color(blue)
  # type(output) intens(low) caps(off) skip(on) color(green)
  + type(text  ) intens(low) caps(off) skip(on) color(blue)
